@@ -113,47 +113,95 @@
         color: #666;
         margin-top: 5px;
     }
+
+    .selectors {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 12px;
+        margin-top: 10px;
+    }
+
+    .player-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #fff;
+        cursor: pointer;
+        transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+        user-select: none;
+    }
+
+    .player-card:hover { transform: translateY(-2px); box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+
+    .player-card.selected { border-color: #1e88e5; box-shadow: 0 0 0 3px rgba(30,136,229,0.15) inset; }
+
+    .player-card img { width: 100%; height: 120px; object-fit: cover; display: block; background: #f3f4f6; }
+
+    .player-name { padding: 8px; font-size: 14px; text-align: center; color: #111827; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+
+    .section {
+        margin-bottom: 24px;
+    }
+
+    .section h3 { margin: 0 0 8px; color: #374151; font-size: 16px; }
+
+    .counts { font-size: 13px; color: #6b7280; margin-top: 6px; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container">
     <h1>Fantasy Cricket Team Selector</h1>
-    <form method="post">
+
+    <form id="selection-form" method="post">
         <div class="form-group">
-            <label for="team1">Team 1 Players (comma-separated):</label>
-            <input type="text" name="team1" value="{{ team1 if team1 else '' }}" required>
-            <p class="input-info">Example: Virat Kohli, Rohit Sharma, Jasprit Bumrah</p>
-        </div>
-        
-        <div class="form-group">
-            <label for="team2">Team 2 Players (comma-separated):</label>
-            <input type="text" name="team2" value="{{ team2 if team2 else '' }}" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="venue">Venue:</label>
-            <input type="text" name="venue" value="{{ venue if venue else '' }}" required>
+            <label for="venue">Venue</label>
+            <select id="venue" name="venue" required>
+                <option value="" disabled selected>Select a venue</option>
+            </select>
+            <p class="input-info">Provide the match venue to improve selection relevance.</p>
         </div>
 
-        <div class="player-counts">
-            <div class="form-group player-count">
-                <label for="batsmen_count">Batsmen:</label>
-                <input type="number" name="batsmen_count" value="{{ batsmen_count if batsmen_count else 5 }}" min="1" max="10">
+        <div class="selectors">
+            <div class="form-group">
+                <label for="team1-select">Team 1</label>
+                <select id="team1-select" required>
+                    <option value="" disabled selected>Select a team</option>
+                </select>
+                <div class="counts" id="team1-count">Selected: 0</div>
             </div>
-
-            <div class="form-group player-count">
-                <label for="bowlers_count">Bowlers:</label>
-                <input type="number" name="bowlers_count" value="{{ bowlers_count if bowlers_count else 5 }}" min="1" max="10">
-            </div>
-
-            <div class="form-group player-count">
-                <label for="allrounders_count">All-rounders:</label>
-                <input type="number" name="allrounders_count" value="{{ allrounders_count if allrounders_count else 1 }}" min="0" max="5">
+            <div class="form-group">
+                <label for="team2-select">Team 2</label>
+                <select id="team2-select" required>
+                    <option value="" disabled selected>Select a team</option>
+                </select>
+                <div class="counts" id="team2-count">Selected: 0</div>
             </div>
         </div>
 
-        <button type="submit">Generate Best Team</button>
+        <div class="section">
+            <h3 id="team1-title">Team 1 Players</h3>
+            <div id="team1-gallery" class="gallery" aria-live="polite"></div>
+        </div>
+
+        <div class="section">
+            <h3 id="team2-title">Team 2 Players</h3>
+            <div id="team2-gallery" class="gallery" aria-live="polite"></div>
+        </div>
+
+        <input type="hidden" name="team1_name" id="team1_name">
+        <input type="hidden" name="team2_name" id="team2_name">
+        <input type="hidden" name="team1_players" id="team1_players">
+        <input type="hidden" name="team2_players" id="team2_players">
+
+        <button type="submit">Submit Selection</button>
     </form>
 
     {% if results %}
@@ -202,15 +250,241 @@
 
 {% block scripts %}
 <script>
-    // Add any JavaScript functionality you need
     document.addEventListener('DOMContentLoaded', function() {
-        // Example: Add confirmation before form submission
-        const form = document.querySelector('form');
-        if (form) {
-            form.addEventListener('submit', function(e) {
-                // Add any validation or confirmation logic here
+        // CSV expected at cricket/data/player_data_cleaned.csv served via cricket blueprint static
+        const csvUrl = "{{ url_for('cricket.static', filename='player_data_cleaned.csv') }}";
+        const venueCsvUrl = "{{ url_for('cricket.static', filename='Venue_fin.csv') }}";
+
+        const team1Select = document.getElementById('team1-select');
+        const team2Select = document.getElementById('team2-select');
+        const venueSelect = document.getElementById('venue');
+        const team1Gallery = document.getElementById('team1-gallery');
+        const team2Gallery = document.getElementById('team2-gallery');
+        const team1Title = document.getElementById('team1-title');
+        const team2Title = document.getElementById('team2-title');
+        const team1Count = document.getElementById('team1-count');
+        const team2Count = document.getElementById('team2-count');
+
+        const hiddenTeam1Name = document.getElementById('team1_name');
+        const hiddenTeam2Name = document.getElementById('team2_name');
+        const hiddenTeam1Players = document.getElementById('team1_players');
+        const hiddenTeam2Players = document.getElementById('team2_players');
+
+        const selectionState = {
+            team1: new Set(),
+            team2: new Set()
+        };
+
+        function splitCsvLine(line) {
+            // Basic CSV splitter handling commas inside quotes
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (ch === '"') {
+                    if (inQuotes && line[i + 1] === '"') { // escaped quote
+                        current += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (ch === ',' && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                } else {
+                    current += ch;
+                }
+            }
+            result.push(current);
+            return result.map(s => s.trim());
+        }
+
+        function parseCsv(text) {
+            const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+            if (lines.length === 0) return [];
+            const data = [];
+            // Expect headers: Player Name, Team Name, Image URL (case-insensitive)
+            const header = splitCsvLine(lines[0]).map(h => h.trim().toLowerCase());
+            const idx = {
+                name: header.indexOf('player name'),
+                team: header.indexOf('team name'),
+                image: header.indexOf('image url')
+            };
+            // Fallbacks if headers vary slightly
+            if (idx.name === -1) idx.name = header.indexOf('name');
+            if (idx.team === -1) idx.team = header.indexOf('team');
+            if (idx.image === -1) idx.image = header.indexOf('image');
+            for (let i = 1; i < lines.length; i++) {
+                const parts = splitCsvLine(lines[i]);
+                if (parts.length < 2) continue;
+                const name = (idx.name >= 0 ? parts[idx.name] : parts[0]).replace(/^"|"$/g, '').trim();
+                const team = (idx.team >= 0 ? parts[idx.team] : '').replace(/^"|"$/g, '').trim();
+                const image = (idx.image >= 0 ? parts[idx.image] : '').replace(/^"|"$/g, '').trim();
+                if (!name || !team) continue;
+                data.push({ name, team, image });
+            }
+            return data;
+        }
+
+        function uniqueTeams(players) {
+            return Array.from(new Set(players.map(p => p.team))).sort();
+        }
+
+        function option(value, text) {
+            const opt = document.createElement('option');
+            opt.value = value;
+            opt.textContent = text;
+            return opt;
+        }
+
+        function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+
+        function renderGallery(galleryEl, players, side) {
+            clear(galleryEl);
+            players.forEach(player => {
+                const card = document.createElement('div');
+                card.className = 'player-card';
+                card.setAttribute('data-name', player.name);
+                card.setAttribute('data-side', side);
+
+                const img = document.createElement('img');
+                img.loading = 'lazy';
+                img.alt = player.name;
+                img.src = player.image || 'https://via.placeholder.com/300x200?text=' + encodeURIComponent(player.name);
+
+                const label = document.createElement('div');
+                label.className = 'player-name';
+                label.textContent = player.name;
+
+                card.appendChild(img);
+                card.appendChild(label);
+
+                if (selectionState[side].has(player.name)) {
+                    card.classList.add('selected');
+                }
+
+                card.addEventListener('click', () => {
+                    const set = selectionState[side];
+                    if (set.has(player.name)) {
+                        set.delete(player.name);
+                        card.classList.remove('selected');
+                    } else {
+                        set.add(player.name);
+                        card.classList.add('selected');
+                    }
+                    updateCounts();
+                });
+
+                galleryEl.appendChild(card);
             });
         }
+
+        function updateCounts() {
+            team1Count.textContent = 'Selected: ' + selectionState.team1.size;
+            team2Count.textContent = 'Selected: ' + selectionState.team2.size;
+        }
+
+        function populateVenuesFromCsv(text) {
+            const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+            if (lines.length === 0) return;
+            const header = splitCsvLine(lines[0]).map(h => h.trim().toLowerCase());
+            const venueIdx = header.indexOf('venue');
+            if (venueIdx === -1) return;
+            const venues = new Set();
+            for (let i = 1; i < lines.length; i++) {
+                const parts = splitCsvLine(lines[i]);
+                if (parts.length <= venueIdx) continue;
+                const v = parts[venueIdx].replace(/^"|"$/g, '').trim();
+                if (v) venues.add(v);
+            }
+            const sorted = Array.from(venues).sort((a, b) => a.localeCompare(b));
+            sorted.forEach(v => venueSelect.appendChild(option(v, v)));
+            const serverVenue = "{{ venue if venue else '' }}";
+            if (serverVenue) venueSelect.value = serverVenue;
+        }
+
+        function populateTeams(players) {
+            const teams = uniqueTeams(players);
+            teams.forEach(t => {
+                team1Select.appendChild(option(t, t));
+                team2Select.appendChild(option(t, t));
+            });
+
+            function updateSide(side) {
+                const teamName = side === 'team1' ? team1Select.value : team2Select.value;
+                const gallery = side === 'team1' ? team1Gallery : team2Gallery;
+                const title = side === 'team1' ? team1Title : team2Title;
+                const filtered = players.filter(p => p.team === teamName);
+                title.textContent = (side === 'team1' ? 'Team 1 Players' : 'Team 2 Players') + (teamName ? ' - ' + teamName : '');
+                renderGallery(gallery, filtered, side);
+            }
+
+            team1Select.addEventListener('change', () => {
+                selectionState.team1.clear();
+                updateSide('team1');
+                updateCounts();
+            });
+            team2Select.addEventListener('change', () => {
+                selectionState.team2.clear();
+                updateSide('team2');
+                updateCounts();
+            });
+        }
+
+        fetch(csvUrl)
+            .then(r => {
+                if (!r.ok) throw new Error('Failed to load player data');
+                return r.text();
+            })
+            .then(text => parseCsv(text))
+            .then(players => {
+                populateTeams(players);
+                updateCounts();
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Could not load player data. Please ensure the CSV is available.');
+            });
+
+        fetch(venueCsvUrl)
+            .then(r => {
+                if (!r.ok) throw new Error('Failed to load venues');
+                return r.text();
+            })
+            .then(text => populateVenuesFromCsv(text))
+            .catch(err => {
+                console.error(err);
+                alert('Could not load venues. Please ensure Venue_fin.csv is available.');
+            });
+
+        const form = document.getElementById('selection-form');
+        form.addEventListener('submit', function(e) {
+            const t1 = team1Select.value;
+            const t2 = team2Select.value;
+            const venue = document.getElementById('venue').value.trim();
+
+            if (!t1 || !t2) {
+                e.preventDefault();
+                alert('Please select both teams.');
+                return;
+            }
+            if (t1 === t2) {
+                e.preventDefault();
+                alert('Please select two different teams.');
+                return;
+            }
+            if (!venue) {
+                e.preventDefault();
+                alert('Please enter a venue.');
+                return;
+            }
+
+            hiddenTeam1Name.value = t1;
+            hiddenTeam2Name.value = t2;
+            hiddenTeam1Players.value = Array.from(selectionState.team1).join(',');
+            hiddenTeam2Players.value = Array.from(selectionState.team2).join(',');
+        });
     });
 </script>
 {% endblock %}

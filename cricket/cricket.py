@@ -118,7 +118,6 @@ class FantasyTeamSelector:
             'combined_team': [player[0] for player in combined_players]
         }
     def _select_best_batsmen(self, team1: List[str], team2: List[str], venue: str) -> List[Tuple[str, float]]:
-        """Select best batsmen."""
         all_batsmen = team1 + team2
         batsman_scores = {}
         

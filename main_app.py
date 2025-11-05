@@ -1,5 +1,5 @@
 from flask import Flask, render_template
-from cricket.cricket import cricket_bp
+from cricket.app import cricket_bp
 from football.football import football_bp
 
 app = Flask(__name__)
