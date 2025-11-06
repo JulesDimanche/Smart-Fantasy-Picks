@@ -252,8 +252,8 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // CSV expected at cricket/data/player_data_cleaned.csv served via cricket blueprint static
-        const csvUrl = "{{ url_for('cricket.static', filename='player_data_cleaned.csv') }}";
-        const venueCsvUrl = "{{ url_for('cricket.static', filename='Venue_fin.csv') }}";
+        const csvUrl = "{{ url_for('static', filename='player_data_cleaned.csv') }}";
+        const venueCsvUrl = "{{ url_for('static', filename='Venue_fin.csv') }}";
 
         const team1Select = document.getElementById('team1-select');
         const team2Select = document.getElementById('team2-select');
