@@ -3,7 +3,7 @@
 {% block title %}Fantasy Cricket Team Selector{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('cricket.static', filename='style.css') }}">
+<link rel="stylesheet" href="/static/style.css">
 <style>
     .container {
         max-width: 800px;
@@ -252,8 +252,8 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // CSV expected at cricket/data/player_data_cleaned.csv served via cricket blueprint static
-        const csvUrl = "{{ url_for('static', filename='player_data_cleaned.csv') }}";
-        const venueCsvUrl = "{{ url_for('static', filename='Venue_fin.csv') }}";
+        const csvUrl = "/static/player_data_cleaned.csv";
+        const venueCsvUrl = "/static/Venue_fin.csv";
 
         const team1Select = document.getElementById('team1-select');
         const team2Select = document.getElementById('team2-select');
