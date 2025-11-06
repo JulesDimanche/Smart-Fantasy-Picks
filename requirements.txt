@@ -3,4 +3,5 @@ numpy
 xgboost
 flask
 tensorflow
-sklearn
+scikit-learn
+joblib

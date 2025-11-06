@@ -172,9 +172,11 @@ selector = None
 @cricket_bp.record_once
 def on_load(state):
     global selector
-    base_dir = os.path.dirname(state.app.root_path)
-    cricket_data_dir = os.path.join(base_dir, 'cric_fin', 'cricket', 'data')
-    model_dir = os.path.join(base_dir, 'cric_fin', 'cricket', 'model')
+    # Resolve relative to the app root so it works on Vercel and locally
+    base_dir = state.app.root_path
+    cricket_dir = os.path.join(base_dir, 'cricket')
+    cricket_data_dir = os.path.join(cricket_dir, 'data')
+    model_dir = os.path.join(cricket_dir, 'model')
 
     data_paths = {
         'data_merge_path': os.path.join(cricket_data_dir, 'data_merge.csv'),

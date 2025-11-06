@@ -19,9 +19,9 @@ model = None
 def on_load(state):
     global model
     try:
-        # Get the path to the model file
-        base_dir = os.path.dirname(state.app.root_path)
-        model_path = os.path.join(base_dir, 'cric_fin/football/model/fantasy_points_model.h5')
+        # Resolve the path relative to the app root for serverless compatibility
+        base_dir = state.app.root_path
+        model_path = os.path.join(base_dir, 'football', 'model', 'fantasy_points_model.h5')
         
         model = load_model(model_path, 
                          custom_objects={'mse': MeanSquaredError})
