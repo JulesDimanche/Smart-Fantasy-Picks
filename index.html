@@ -277,7 +277,7 @@
         </div>
         
         <div class="options">
-            <div class="option-card cricket animate__animated animate__fadeInLeft animate-delay-1">
+            <div class="option-card cricket animate__animated animate__fadeInLeft animate-delay-1" data-target="cricket/templates/cricket.html">
                 <div class="icon-container">
                     <div class="icon">🏏</div>
                 </div>
@@ -295,7 +295,7 @@
                 </div>
             </div>
             
-            <div class="option-card football animate__animated animate__fadeInRight animate-delay-1">
+            <div class="option-card football animate__animated animate__fadeInRight animate-delay-1" data-target="football/templates/football.html">
                 <div class="icon-container">
                     <div class="icon">⚽</div>
                 </div>
@@ -414,8 +414,9 @@
         document.querySelectorAll('.option-card').forEach(card => {
             card.addEventListener('click', function() {
                 this.classList.add('animate__pulse');
+                const target = this.dataset.target;
                 setTimeout(() => {
-                    window.location.href = this === document.querySelector('.cricket') ? 'cricket.html' : 'football.html';
+                    if (target) window.location.href = target;
                 }, 300);
             });
         });
