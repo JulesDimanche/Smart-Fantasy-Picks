@@ -36,8 +36,6 @@ Each module runs independently with no shared logic.
 
 ## System Architecture Overview
 
-*Add workflow / architecture image here:*  
-`![Architecture Diagram](path/to/your_image.png)`
 
 Architecture follows:
 - `main_app.py` as core Flask container  
@@ -154,13 +152,6 @@ The `index.html` landing page includes:
 
 ---
 
-## Add Workflow / Architecture Diagram Here
-```
-![Workflow Diagram](path/to/diagram.png)
-```
-
----
 
 ## License
-Add your project license here.
-
+This project is open-source and available under the MIT License.
